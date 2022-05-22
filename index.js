@@ -11,23 +11,39 @@ app.use(cors());
 app.use(express.json());
 
 // Mongodb
-const uri = `mongodb+srv://${process.env.USER_ID}:${process.env.SECRET_KEY}@cluster0.xyj46.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
+// const uri = `mongodb+srv://${process.env.USER_ID}:${process.env.SECRET_KEY}@cluster0.xyj46.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
+// const client = new MongoClient(uri, {
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true,
+//   serverApi: ServerApiVersion.v1,
+// });
+
+const uri =
+  "mongodb+srv://admin:7lmZB425Z92zztUJ@cluster0.lznyk.mongodb.net/?retryWrites=true&w=majority";
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
 
-// async function run() {
-//   await client.connect();
+async function run() {
+  try {
+    await client.connect();
+    const productCollections = client.db("Manufacturer").collection("products");
 
-//   try {
-//   } finally {
-//     //   await client.close();
-//   }
-// }
+    // console.log(productCollections);
 
-// run().catch(console.dir);
+    app.get("/product", async (req, res) => {
+      const products = await productCollections.find().toArray();
+
+      res.send(products);
+    });
+  } finally {
+    //   await client.close();
+  }
+}
+
+run().catch(console.dir);
 
 app.get("/", (req, res) => {
   res.send("Server start");
