@@ -21,7 +21,7 @@ const client = new MongoClient(uri, {
 // jwt funtion
 const verifyJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  console.log(authHeader)
+  // console.log(authHeader)
   if (!authHeader) {
     return res.status(401).send({ Message: "UnAuthorized access" });
   }
@@ -51,7 +51,7 @@ async function run() {
     });
 
     // get a product from db
-    app.get("/product/:id", async (req, res) => {
+    app.get("/product/:id", verifyJWT, async (req, res) => {
       const id = req.params.id
       const query = { _id: ObjectId(id) }
       const product = await productCollections.findOne(query)
@@ -61,7 +61,7 @@ async function run() {
     //
     app.put("/user/:email", async (req, res) => {
       const email = req.params.email;
-      console.log(email)
+      // console.log(email)
       const user = req.body;
       const filter = { email: email };
       const options = { upsert: true };
@@ -71,7 +71,7 @@ async function run() {
       const result = await userCollections.updateOne(filter, updateDoc, options);
       // give jwt to clint
       const token = jwt.sign({ email: email }, process.env.JWT_TOKEN, {
-        expiresIn: "1m",
+        expiresIn: "1h",
       });
       res.send({ result, token });
     });
@@ -90,6 +90,30 @@ async function run() {
       const result = await bookingCollections.insertOne(booking);
       return res.send({ success: true, result });
     })
+
+    // find order for singel person booking
+    app.get("/booking", verifyJWT, async (req, res) => {
+      const user = req.query.user;
+
+      // jwt verify
+      const decodedEmail = req.decoded.email;
+      if (user === decodedEmail) {
+        const query = { email: user };
+        const bookings = await bookingCollections.find(query).toArray();
+        return res.send(bookings);
+      } else {
+        return res.status(403).send({ Message: "Forbidden access" });
+      }
+    });
+
+
+    // get a booking by id
+    app.get("/booking/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const booking = await bookingCollections.findOne(query);
+      res.send(booking);
+    });
 
 
   } finally {
