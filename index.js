@@ -42,7 +42,7 @@ async function run() {
     await client.connect();
     const productCollections = client.db("Manufacturer").collection("products");
     const bookingCollections = client.db("Manufacturer").collection("booking");
-    const commentCollections = client.db("Manufacturer").collection("comments");
+    const reviewCollections = client.db("Manufacturer").collection("reviews");
     const userCollections = client.db("Manufacturer").collection("users");
     const paymentCollections = client.db("Manufacturer").collection("payment");
 
@@ -60,37 +60,6 @@ async function run() {
       const product = await productCollections.findOne(query)
       res.send(product)
     })
-
-
-    // payment
-    app.post('/create-payment-intent', verifyJWT, async (req, res) => {
-      const service = req.body;
-      const price = service.price;
-      const amount = price * 100;
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: amount,
-        currency: 'usd',
-        payment_method_types: ['card']
-      });
-      res.send({ clientSecret: paymentIntent.client_secret })
-    });
-
-    // booking after payment
-    app.patch("/booking/:id", verifyJWT, async (req, res) => {
-      const id = req.params.id;
-      const payment = req.body;
-      const filter = { _id: ObjectId(id) };
-      const updatedDoc = {
-        $set: {
-          paid: true,
-          transactionId: payment.transactionId,
-        },
-      };
-      const result = await paymentCollections.insertOne(payment);
-      const updatedBooking = await bookingCollections.updateOne(filter, updatedDoc);
-      res.send(updatedBooking);
-    });
-
 
     //
     app.put("/user/:email", async (req, res) => {
@@ -149,34 +118,57 @@ async function run() {
       res.send(booking);
     });
 
-    // // payment
-    // app.post('/create-payment-intent', verifyJWT, async (req, res) => {
-    //   const service = req.body;
-    //   const price = service.price;
-    //   const amount = price * 100;
-    //   const paymentIntent = await stripe.paymentIntents.create({
-    //     amount: amount,
-    //     currency: 'usd',
-    //     payment_method_types: ['card']
-    //   });
-    //   res.send({ clientSecret: paymentIntent.client_secret })
-    // });
+    // payment
+    app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+      const service = req.body;
+      const price = service.price;
+      const amount = price * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+      res.send({ clientSecret: paymentIntent.client_secret })
+    });
 
-    // // booking after payment
-    // app.patch("/booking/:id", verifyJWT, async (req, res) => {
-    //   const id = req.params.id;
-    //   const payment = req.body;
-    //   const filter = { _id: ObjectId(id) };
-    //   const updatedDoc = {
-    //     $set: {
-    //       paid: true,
-    //       transactionId: payment.transactionId,
-    //     },
-    //   };
-    //   const result = await paymentCollections.insertOne(payment);
-    //   const updatedBooking = await bookingCollections.updateOne(filter, updatedDoc);
-    //   res.send(updatedBooking);
-    // });
+    // booking after payment
+    app.patch("/booking/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const payment = req.body;
+      const filter = { _id: ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId,
+        },
+      };
+      const result = await paymentCollections.insertOne(payment);
+      const updatedBooking = await bookingCollections.updateOne(filter, updatedDoc);
+      res.send(updatedBooking);
+    });
+
+
+    // chack admin
+    app.get("/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await userCollections.findOne(query);
+      const isAdmin = user.role === "admin";
+      res.send({ admin: isAdmin });
+    });
+
+    // add review
+    app.post("/review", verifyJWT, async (req, res) => {
+      const review = req.body;
+      const result = await reviewCollections.insertOne(review);
+      res.send(result);
+    });
+
+    // get all review
+    app.get('/review', async (req, res) => {
+      const reviews = await reviewCollections.find().toArray()
+      res.send(reviews)
+    })
 
 
   } finally {
