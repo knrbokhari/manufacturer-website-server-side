@@ -46,7 +46,7 @@ async function run() {
     const userCollections = client.db("Manufacturer").collection("users");
     const paymentCollections = client.db("Manufacturer").collection("payment");
 
-
+    // verify Admin
     const verifyAdmin = async (req, res, next) => {
       const requester = req.decoded.email;
       const requesterAccount = await userCollections.findOne({
@@ -59,12 +59,31 @@ async function run() {
       }
     };
 
+
+    // create a user in db & give jwt token
+    app.put("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      // console.log(email)
+      const user = req.body;
+      const filter = { email: email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: user,
+      };
+      const result = await userCollections.updateOne(filter, updateDoc, options);
+      // give jwt to clint
+      const token = jwt.sign({ email: email }, process.env.JWT_TOKEN, {
+        expiresIn: "1h",
+      });
+      res.send({ result, token });
+    });
+
     // chack admin
     app.get("/admin/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const user = await userCollections.findOne(query);
-      const isAdmin = user.role === "admin";
+      const isAdmin = user?.role === "admin";
       res.send({ admin: isAdmin });
     });
 
@@ -93,23 +112,13 @@ async function run() {
       res.send(product)
     })
 
-    //
-    app.put("/user/:email", async (req, res) => {
-      const email = req.params.email;
-      // console.log(email)
-      const user = req.body;
-      const filter = { email: email };
-      const options = { upsert: true };
-      const updateDoc = {
-        $set: user,
-      };
-      const result = await userCollections.updateOne(filter, updateDoc, options);
-      // give jwt to clint
-      const token = jwt.sign({ email: email }, process.env.JWT_TOKEN, {
-        expiresIn: "1h",
-      });
-      res.send({ result, token });
+    app.delete("/booking/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await bookingCollections.deleteOne(filter);
+      res.send(result);
     });
+
 
     // update user
     app.put("/userprofile/:email", async (req, res) => {
@@ -205,16 +214,6 @@ async function run() {
       const result = await paymentCollections.insertOne(payment);
       const updatedBooking = await bookingCollections.updateOne(filter, updatedDoc);
       res.send(updatedBooking);
-    });
-
-
-    // chack admin
-    app.get("/admin/:email", async (req, res) => {
-      const email = req.params.email;
-      const query = { email: email };
-      const user = await userCollections.findOne(query);
-      const isAdmin = user.role === "admin";
-      res.send({ admin: isAdmin });
     });
 
     // add review
