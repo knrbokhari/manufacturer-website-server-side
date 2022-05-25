@@ -79,6 +79,34 @@ async function run() {
       res.send({ result, token });
     });
 
+    // update user
+    app.put("/userprofile/:email", async (req, res) => {
+      const email = req.params.email;
+      // console.log(email)
+      const user = req.body;
+      const filter = { email: email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: user,
+      };
+      const result = await userCollections.updateOne(filter, updateDoc, options);
+      res.send(result);
+    });
+
+    // get all user info from db
+    app.get("/user", verifyJWT, async (req, res) => {
+      const users = await userCollections.find().toArray()
+      res.send(users)
+    })
+
+    // get a user info from db
+    app.get("/user/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email
+      const query = { email: email }
+      const user = await userCollections.findOne(query)
+      res.send(user)
+    })
+
     // Insert a booking
     app.post("/booking", async (req, res) => {
       const booking = req.body
