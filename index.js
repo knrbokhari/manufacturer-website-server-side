@@ -47,6 +47,38 @@ async function run() {
     const paymentCollections = client.db("Manufacturer").collection("payment");
 
 
+    const verifyAdmin = async (req, res, next) => {
+      const requester = req.decoded.email;
+      const requesterAccount = await userCollections.findOne({
+        email: requester,
+      });
+      if (requesterAccount.role === "admin") {
+        next();
+      } else {
+        res.status(403).send({ message: "forbidden" });
+      }
+    };
+
+    // chack admin
+    app.get("/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await userCollections.findOne(query);
+      const isAdmin = user.role === "admin";
+      res.send({ admin: isAdmin });
+    });
+
+    // make admin
+    app.put("/user/admin/:email", verifyJWT, verifyAdmin, async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+      const updateDoc = {
+        $set: { role: "admin" },
+      };
+      const result = await userCollections.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
     // get all products from db
     app.get("/product", async (req, res) => {
       const products = await productCollections.find().toArray();
