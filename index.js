@@ -112,6 +112,21 @@ async function run() {
       res.send(product)
     })
 
+
+    // get a product from db
+    app.delete("/product/:id", verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id
+      const filter = { _id: ObjectId(id) }
+      const result = await productCollections.deleteOne(filter)
+      res.send(result)
+    })
+
+    // get all products from db
+    app.get("/booking", verifyJWT, verifyAdmin, async (req, res) => {
+      const bookings = await bookingCollections.find().toArray();
+      res.send(bookings);
+    });
+
     app.delete("/booking/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
@@ -213,6 +228,20 @@ async function run() {
       };
       const result = await paymentCollections.insertOne(payment);
       const updatedBooking = await bookingCollections.updateOne(filter, updatedDoc);
+      res.send(updatedBooking);
+    });
+
+    // shipped
+    app.patch("/shipping/:id", verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          status: true,
+        },
+      };
+      const updatedBooking = await bookingCollections.updateOne(filter, updatedDoc, options);
       res.send(updatedBooking);
     });
 
