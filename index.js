@@ -112,8 +112,14 @@ async function run() {
       res.send(product)
     })
 
+    // add a product
+    app.post("/product", verifyJWT, verifyAdmin, async (req, res) => {
+      const product = req.body;
+      const result = await productCollections.insertOne(product);
+      res.send(result);
+    });
 
-    // get a product from db
+    // belete a product from db
     app.delete("/product/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id
       const filter = { _id: ObjectId(id) }
@@ -122,7 +128,7 @@ async function run() {
     })
 
     // get all products from db
-    app.get("/booking", verifyJWT, verifyAdmin, async (req, res) => {
+    app.get("/booking", verifyJWT, async (req, res) => {
       const bookings = await bookingCollections.find().toArray();
       res.send(bookings);
     });
@@ -201,6 +207,16 @@ async function run() {
       const booking = await bookingCollections.findOne(query);
       res.send(booking);
     });
+
+    // get a booking by id
+    app.get("/userbooking/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      // console.log(email)
+      const query = { email: email };
+      const userBooking = await bookingCollections.find(query).toArray();
+      res.send(userBooking);
+    });
+
 
     // payment
     app.post('/create-payment-intent', verifyJWT, async (req, res) => {
